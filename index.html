@@ -55,6 +55,43 @@
     #imgEditor canvas{border:1px solid #ddd;background:#fff;max-width:100%;}
     #imgEditor .controls{flex-direction:column;min-width:220px}
     .crop-rect{position:absolute;border:2px dashed rgba(0,0,0,.6);pointer-events:none}
+
+  
+   
+
+/* footer Make the page wrapper take full height */
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+.page-wrapper {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Main content grows to fill space */
+.wrap {
+    flex: 1;
+}
+
+/* Footer at the bottom */
+.page-footer {
+    background-color: skyblue;  /* readable color */
+    color: darkblue;
+    text-align: center;
+    padding: 10px 10px;
+    font-size: 12px;
+    border-top: 2px solid darkblue;
+}
+
+
+  
+  
+  
+  
+  
   </style>
 
   <!-- Libraries -->
@@ -167,6 +204,26 @@
       </div>
     </div>
   </div>
+
+
+
+
+
+  <footer class="page-footer">
+    <div class="footer-content">
+      <b><p>© 2025 Your Website Name. All-in-One-Converter. Made with ❤️ for fast client-side conversion.</p>
+    </b>
+	
+	</div>
+  </footer>
+</div>
+
+
+
+
+
+
+
 
 <script>
 /* ---------- core setup ---------- */
@@ -731,4 +788,5 @@ converters.forEach(c=> setListFromInput(c.id));
 </script>
 </body>
 </html>
+
 
