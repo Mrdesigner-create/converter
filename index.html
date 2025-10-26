@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>All-in-One Converter </title>
+  <style>
+    :root{--bg1:#87CEEB;--bg2:#ff4b2b;--accent:#5eead4;--text:#f8f5f6}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;background:linear-gradient(135deg,var(--bg1),var(--bg2));color:var(--text);transition:background 0.45s}
+    body.bg-image{background:url('https://mrdesigner-create.github.io/photoes/Beautiful-Rose.jpg') center/cover no-repeat fixed}
+    header{padding:32px 16px;text-align:center}
+    h1{margin:0 0 8px;font-size:clamp(24px,3.3vw,38px)}
+    .subtitle{opacity:.9}
+    .wrap{max-width:1100px;margin:0 auto;padding:0 16px 64px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+    .card{background:rgba(0,0,0,.3);border-radius:14px;padding:14px;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+    .card h3{margin:4px 0 12px 0}
+    .dropzone{width:100%;padding:12px;border:2px dashed rgba(255,255,255,.3);border-radius:12px;text-align:center;cursor:pointer;user-select:none}
+    .dropzone.dragover{border-color:var(--accent);background:rgba(94,234,212,.08)}
+    input[type=file]{display:none}
+    button{cursor:pointer;border:none;padding:10px 14px;border-radius:12px;background:var(--accent);color:#06161a;font-weight:700;margin-top:5px}
+    button.secondary{background:#94a3b8;color:#0b1020}
+    .file-list{margin-top:10px;font-size:13px;max-height:140px;overflow:auto;background:rgba(0,0,0,.2);padding:8px;border-radius:8px}
+    .file-item{display:flex;justify-content:space-between;padding:6px;border-bottom:1px solid rgba(255,255,255,.08);align-items:center}
+    .file-item .meta{max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .overlay{position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:9999}
+    .overlay.open{display:flex}
+    .overlay .box{background:white;color:black;width:210mm;height:297mm;max-width:95%;max-height:90%;overflow:auto;padding:18px;border-radius:12px;box-shadow:0 0 20px rgba(0,0,0,.4)}
+    .overlay h2{margin-top:0}
+    .toggle-bg{position:fixed;top:10px;right:10px;padding:8px 14px;background:var(--accent);border-radius:8px;font-weight:700;cursor:pointer;z-index:10000;color:#111}
+    .preview-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+    .preview-card{width:150px;background:#fafafa;border-radius:8px;padding:8px;box-shadow:0 4px 12px rgba(0,0,0,.06);text-align:center;cursor:grab;color:#111}
+    .preview-card.dragging{opacity:.5}
+    .preview-card img{max-width:100%;max-height:90px;display:block;margin:0 auto 6px}
+    .preview-card canvas{max-width:100%;height:auto;display:block;margin:0 auto 6px}
+    .preview-actions{display:flex;gap:8px;justify-content:center;margin-top:6px}
+    .muted{color:#666;font-size:13px}
+    .light-list{margin-top:12px}
+    .list-row{display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid #eee;background:#fff;border-radius:4px;margin-bottom:6px;align-items:center}
+    .drag-handle{cursor:grab;padding:6px;background:#eee;border-radius:6px;margin-right:8px}
+    .controls{display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap}
+    .control-group{background:#f7f7f7;padding:8px;border-radius:8px;color:#111}
+    .slider{width:160px}
+    .small{font-size:13px}
+    .badge{display:inline-flex;gap:6px;align-items:center;padding:4px 8px;border-radius:999px;background:rgba(94,234,212,.15);color:var(--accent);font-size:12px;font-weight:700}
+    .hint{font-size:12px;opacity:.9}
+    .notice{font-size:12px;margin-top:6px}
+    .success{color:#86efac}
+    .error{color:#fca5a5}
+
+    /* image editor modal inside overlay.box */
+    #imgEditor{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:11000;background:white;color:#111;padding:12px;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.6);display:none;width:min(880px,95%);max-height:90%;overflow:auto}
+    #imgEditor .editor-row{display:flex;gap:12px}
+    #imgEditor canvas{border:1px solid #ddd;background:#fff;max-width:100%;}
+    #imgEditor .controls{flex-direction:column;min-width:220px}
+    .crop-rect{position:absolute;border:2px dashed rgba(0,0,0,.6);pointer-events:none}
+  </style>
+
+  <!-- Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>
+  <script src="https://unpkg.com/docx@8.3.2/build/index.js"></script>
+  <script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+</head>
+<body class="bg-image">
+  <div class="toggle-bg" id="toggleBgBtn">🌅 Hide / Show Background</div>
+  <header style="color: darkred;">
+    
+    <h1 <h1 style="color: darkred;">All-in-One Converter</h1>
+    <div class="subtitle">Combine PDFs and convert between PDF ↔ Word ↔ Excel (and Images)</div>
+  </header>
+
+  <div class="wrap">
+    <div class="grid" id="converterGrid"></div>
+    <p style="text-align:center;opacity:.9;margin-top:30px">⚡ Fast client-side converter</p>
+  </div>
+
+  <!-- Fullscreen overlay (A4) -->
+  <div class="overlay" id="fullscreenOverlay" aria-hidden="true">
+    <div class="box" role="dialog" aria-modal="true">
+      <h2 id="overlayTitle"></h2>
+
+      <div style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+        <div class="muted" id="overlayCount">0 files</div>
+        <div style="display:flex;gap:8px">
+          <button id="submitBtn">Submit</button>
+          <button class="secondary" id="downloadBtn" style="display:none">Download</button>
+          <button class="secondary" id="printBtn" style="display:none">Print</button>
+          <button class="secondary" id="closeBtn">Back</button>
+        </div>
+      </div>
+
+      <!-- image controls (show only for imgmerge) -->
+      <div id="imageControls" style="margin-top:12px;display:none">
+        <div class="controls">
+          <div class="control-group small">
+            Paper:
+            <select id="paperSize">
+              <option value="A4">A4 (210 × 297 mm)</option>
+              <option value="A3">A3 (297 × 420 mm)</option>
+              <option value="Letter">Letter (216 × 279 mm)</option>
+              <option value="Custom">Custom (mm)</option>
+            </select>
+            <input id="customW" type="number" placeholder="W mm" style="width:80px;display:none"/>
+            <input id="customH" type="number" placeholder="H mm" style="width:80px;display:none"/>
+            <label><input type="radio" name="orient" value="portrait" checked/> Portrait</label>
+            <label><input type="radio" name="orient" value="landscape" /> Landscape</label>
+          </div>
+
+          <div class="control-group small">
+            Mode:
+            <label><input type="radio" name="imgMode" value="individual" /> Individual</label>
+            <label><input type="radio" name="imgMode" value="together" checked/> Together</label>
+          </div>
+
+          <div class="control-group small">
+            Brightness: <input id="brightness" class="slider" type="range" min="50" max="150" value="100"/> <span id="bval">100%</span>
+            Contrast: <input id="contrast" class="slider" type="range" min="50" max="150" value="100"/> <span id="cval">100%</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="overlayDrop" class="dropzone" style="margin-top:12px;">Drop files here to add (or click). Paste (Ctrl+V) images to add.</div>
+
+      <div id="overlayPreview" class="preview-row"></div>
+
+      <div id="postMsg" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <!-- Image editor modal -->
+  <div id="imgEditor" role="dialog" aria-modal="true">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <strong>Image Editor</strong>
+      <div><button id="closeEditor" class="secondary">Close</button></div>
+    </div>
+    <div class="editor-row">
+      <div style="flex:1;position:relative">
+        <canvas id="editCanvas" width="800" height="600"></canvas>
+        <div id="cropRect" class="crop-rect" style="display:none"></div>
+      </div>
+      <div class="controls">
+        <div class="control-group small">
+          Resize (px):<br>
+          W: <input id="resizeW" type="number" style="width:100%" />
+          H: <input id="resizeH" type="number" style="width:100%" />
+          <label><input id="keepAspect" type="checkbox" checked/> Keep aspect</label>
+        </div>
+        <div class="control-group small">
+          Crop: drag on canvas to select area. Use buttons below to reset/apply.
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <button id="resetCrop" class="secondary">Reset</button>
+            <button id="applyCrop">Save</button>
+          </div>
+        </div>
+        <div class="control-group small">
+          Preview Filters:
+          Brightness: <input id="editBrightness" type="range" min="50" max="150" value="100"/><br>
+          Contrast: <input id="editContrast" type="range" min="50" max="150" value="100"/>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ---------- core setup ---------- */
+['dragenter','dragover','dragleave','drop'].forEach(ev => {
+  window.addEventListener(ev, (e) => {
+    if(e.target && (e.target.tagName === 'INPUT' || e.target.closest && e.target.closest('input'))) return;
+    e.preventDefault();
+    e.stopPropagation();
+  }, { passive:false });
+});
+
+const converters = [
+  {id:'merge',label:'Combine / Merge PDFs',accept:'.pdf'},
+  {id:'pdf2docx',label:'PDF → Word (.docx)',accept:'.pdf'},
+  {id:'docx2pdf',label:'Word (.docx) → PDF',accept:'.doc,.docx'},
+  {id:'xls2pdf',label:'Excel (.xlsx) → PDF',accept:'.xls,.xlsx'},
+  {id:'pdf2xls',label:'PDF → Excel (.xlsx)',accept:'.pdf'},
+  {id:'docx2xls',label:'Word (.docx) → Excel (.xlsx)',accept:'.doc,.docx'},
+  {id:'xls2docx',label:'Excel (.xlsx) → Word (.docx)',accept:'.xls,.xlsx'},
+  {id:'imgmerge',label:'Images → Merge (PDF)',accept:'image/*'}
+];
+
+const grid = document.getElementById('converterGrid');
+converters.forEach(c=>{
+  grid.insertAdjacentHTML('beforeend', `
+    <section class="card" id="${c.id}">
+      <h3>${c.label}</h3>
+      <label class="dropzone" id="${c.id}Drop">
+        Drop files here or
+        <button class="secondary" data-click="choose" data-input="${c.id}Files">Choose files</button>
+        <input id="${c.id}Files" type="file" accept="${c.accept}" multiple />
+      </label>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="secondary" data-clear="${c.id}">Clear</button>
+        <button class="secondary" data-full="${c.id}">Fullscreen</button>
+      </div>
+      <div class="file-list" id="${c.id}List">No file selected</div>
+    </section>
+  `);
+});
+
+function byId(id){ return document.getElementById(id); }
+function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+function setListFromInput(id){
+  const input = byId(id+'Files'); const list = byId(id+'List');
+  const files = Array.from(input.files || []);
+  if(!files.length){ list.innerHTML='No file selected'; return; }
+  list.innerHTML = files.map((f,i)=>`<div class="file-item"><div class="meta">${i+1}. ${escapeHtml(f.name)}</div><div><button class="secondary" data-remove="${id}" data-index="${i}">Remove</button></div></div>`).join('');
+}
+
+converters.forEach(c=>{
+  const drop = byId(c.id+'Drop'); const input = byId(c.id+'Files');
+  drop.addEventListener('click', e=>{
+    if(e.target && e.target.getAttribute && e.target.getAttribute('data-click')==='choose') return;
+    input.click();
+  });
+  const chooseBtn = drop.querySelector('button[data-click="choose"]');
+  chooseBtn.addEventListener('click', (e)=> { e.stopPropagation(); byId(e.target.getAttribute('data-input')).click(); });
+  ['dragenter','dragover'].forEach(ev=> drop.addEventListener(ev, e=>{ e.preventDefault(); e.stopPropagation(); drop.classList.add('dragover'); }, {passive:false}));
+  ['dragleave','dragend','drop'].forEach(ev=> drop.addEventListener(ev, e=>{ e.preventDefault(); e.stopPropagation(); drop.classList.remove('dragover'); }, {passive:false}));
+  drop.addEventListener('drop', e=>{
+    const dt = new DataTransfer();
+    Array.from(input.files || []).forEach(f => dt.items.add(f));
+    Array.from(e.dataTransfer.files || []).forEach(f => {
+      if(c.id === 'imgmerge'){
+        if(f.type && f.type.startsWith('image/')) dt.items.add(f);
+      } else {
+        dt.items.add(f);
+      }
+    });
+    input.files = dt.files;
+    setListFromInput(c.id);
+  });
+  input.addEventListener('change', ()=> setListFromInput(c.id));
+  const clearBtn = document.querySelector(`[data-clear="${c.id}"]`);
+  if(clearBtn) clearBtn.addEventListener('click', ()=>{ input.value=''; setListFromInput(c.id); });
+});
+
+document.addEventListener('click', (e)=>{
+  const rem = e.target.closest('button[data-remove]');
+  if(!rem) return;
+  const idBase = rem.getAttribute('data-remove'); const index = Number(rem.getAttribute('data-index'));
+  const input = byId(idBase+'Files'); const dt = new DataTransfer();
+  Array.from(input.files || []).forEach((f,i)=>{ if(i!==index) dt.items.add(f); });
+  input.files = dt.files; setListFromInput(idBase);
+});
+
+/* ---------- overlay & preview logic ---------- */
+const overlay = byId('fullscreenOverlay'), overlayTitle = byId('overlayTitle'), overlayCount = byId('overlayCount');
+const overlayDrop = byId('overlayDrop'), overlayPreview = byId('overlayPreview');
+const submitBtn = byId('submitBtn'), downloadBtn = byId('downloadBtn'), printBtn = byId('printBtn'), closeBtn = byId('closeBtn'), postMsg = byId('postMsg');
+const imageControls = byId('imageControls');
+const paperSizeEl = byId('paperSize'), customW = byId('customW'), customH = byId('customH');
+const brightnessEl = byId('brightness'), contrastEl = byId('contrast'), bval = byId('bval'), cval = byId('cval');
+
+let activeSection = null;
+let lastResult = null;
+
+// image edits map: key = filename + '__' + lastModified
+const imageEdits = new Map();
+
+function openFullscreen(sectionId){
+  activeSection = sectionId;
+  overlayTitle.textContent = document.querySelector('#'+sectionId+' h3').textContent;
+  overlayCount.textContent = (byId(sectionId+'Files').files.length || 0) + ' files';
+  lastResult = null; downloadBtn.style.display='none'; printBtn.style.display='none'; postMsg.innerHTML='';
+  imageControls.style.display = (sectionId === 'imgmerge') ? '' : 'none';
+  renderOverlayPreviewFromInput();
+  overlay.classList.add('open'); overlay.setAttribute('aria-hidden','false');
+}
+document.querySelectorAll('[data-full]').forEach(btn=> btn.addEventListener('click', ()=> openFullscreen(btn.getAttribute('data-full')) ));
+function closeFullscreen(){ overlay.classList.remove('open'); overlay.setAttribute('aria-hidden','true'); activeSection=null; }
+closeBtn.addEventListener('click', closeFullscreen);
+
+['dragenter','dragover'].forEach(ev=> overlayDrop.addEventListener(ev, e=>{ e.preventDefault(); overlayDrop.classList.add('dragover'); }, {passive:false}));
+['dragleave','dragend','drop'].forEach(ev=> overlayDrop.addEventListener(ev, e=>{ e.preventDefault(); overlayDrop.classList.remove('dragover'); }, {passive:false}));
+
+overlayDrop.addEventListener('click', ()=> { if(!activeSection) return; byId(activeSection+'Files').click(); });
+
+overlayDrop.addEventListener('drop', e=>{
+  e.preventDefault(); overlayDrop.classList.remove('dragover'); if(!activeSection) return;
+  const input = byId(activeSection+'Files'); const dt = new DataTransfer();
+  Array.from(input.files || []).forEach(f=> dt.items.add(f));
+  Array.from(e.dataTransfer.files || []).forEach(f=>{
+    if(activeSection === 'imgmerge'){
+      if(f.type && f.type.startsWith('image/')) dt.items.add(f);
+    } else dt.items.add(f);
+  });
+  input.files = dt.files; setListFromInput(activeSection); renderOverlayPreviewFromInput(); overlayCount.textContent = (input.files.length || 0) + ' files';
+});
+
+document.addEventListener('paste', (e)=>{
+  if(!activeSection) return;
+  const items = Array.from(e.clipboardData?.items || []);
+  const imageItems = items.filter(it => it.kind === 'file' && it.type && it.type.startsWith('image/'));
+  if(!imageItems.length) return;
+  const input = byId(activeSection+'Files');
+  const dt = new DataTransfer();
+  Array.from(input.files || []).forEach(f=> dt.items.add(f));
+  imageItems.forEach(it => { const file = it.getAsFile(); if(file) dt.items.add(file); });
+  input.files = dt.files; setListFromInput(activeSection); renderOverlayPreviewFromInput(); overlayCount.textContent = (input.files.length || 0) + ' files';
+});
+
+converters.forEach(c=> byId(c.id+'Files').addEventListener('change', ()=>{ setListFromInput(c.id); if(activeSection === c.id) renderOverlayPreviewFromInput(); }));
+
+/* ---------- render overlay preview (thumbnails or lightweight list) ---------- */
+async function renderOverlayPreviewFromInput(){
+  overlayPreview.innerHTML=''; postMsg.innerHTML=''; lastResult=null; downloadBtn.style.display='none'; printBtn.style.display='none';
+  if(!activeSection) return;
+  const input = byId(activeSection+'Files'); const files = Array.from(input.files || []);
+  overlayCount.textContent = `${files.length} file(s)`;
+  if(!files.length){ overlayPreview.innerHTML = `<div class="muted" style="margin-top:12px">No files. Drop files or use Choose.</div>`; return; }
+
+  const LARGE_THRESHOLD = 500; const THUMB_LIMIT = 120;
+  if(activeSection !== 'imgmerge'){
+    // keep existing behaviour for non-image sections
+  }
+
+  if(files.length > LARGE_THRESHOLD){
+    const container = document.createElement('div'); container.className='light-list';
+    files.forEach((f,i)=>{
+      const row = document.createElement('div'); row.className='list-row'; row.draggable = true; row.dataset.index = i;
+      const left = document.createElement('div'); left.style.display='flex'; left.style.alignItems='center';
+      const handle = document.createElement('div'); handle.className='drag-handle'; handle.textContent='☰';
+      left.appendChild(handle);
+      const meta = document.createElement('div'); meta.textContent = `${i+1}. ${f.name}`; meta.style.marginLeft='8px';
+      left.appendChild(meta);
+      const right = document.createElement('div');
+      const openBtn = document.createElement('button'); openBtn.textContent='Open'; openBtn.addEventListener('click', ()=> openFileInNewTab(f));
+      const delBtn = document.createElement('button'); delBtn.className='secondary'; delBtn.textContent='Delete'; delBtn.addEventListener('click', ()=> overlayRemove(i));
+      right.appendChild(openBtn); right.appendChild(delBtn);
+      row.appendChild(left); row.appendChild(right);
+      container.appendChild(row);
+      row.addEventListener('dragstart', ev=>{ ev.dataTransfer.setData('text/plain', i); row.classList.add('dragging'); });
+      row.addEventListener('dragend', ()=> row.classList.remove('dragging'));
+      row.addEventListener('dragover', ev=> ev.preventDefault());
+      row.addEventListener('drop', ev=>{ ev.preventDefault(); const from = Number(ev.dataTransfer.getData('text/plain')); const to = Number(row.dataset.index); reorderFiles(input, from, to); renderOverlayPreviewFromInput(); });
+    });
+    overlayPreview.appendChild(container);
+    return;
+  }
+
+  for(let i=0;i<files.length;i++){
+    const f = files[i];
+    const card = document.createElement('div'); card.className='preview-card'; card.draggable = true; card.dataset.index = i; card.style.color='#111';
+    card.addEventListener('dragstart', ev=>{ ev.dataTransfer.setData('text/plain', i); card.classList.add('dragging'); });
+    card.addEventListener('dragend', ()=> card.classList.remove('dragging'));
+    card.addEventListener('dragover', ev=> ev.preventDefault());
+    card.addEventListener('drop', ev=>{ ev.preventDefault(); const from = Number(ev.dataTransfer.getData('text/plain')); const to = Number(card.dataset.index); reorderFiles(byId(activeSection+'Files'), from, to); renderOverlayPreviewFromInput(); });
+
+    const previewEl = document.createElement('div'); previewEl.style.minHeight='90px'; previewEl.style.display='flex'; previewEl.style.alignItems='center'; previewEl.style.justifyContent='center'; previewEl.style.position='relative';
+    const name = f.name.toLowerCase();
+
+    if(i < THUMB_LIMIT && (name.match(/\.(jpe?g|png|gif|bmp|webp)$/) || (f.type && f.type.startsWith('image/')))){
+      const img = document.createElement('img'); img.src = URL.createObjectURL(f); img.onload = ()=> URL.revokeObjectURL(img.src);
+      previewEl.appendChild(img);
+    } else if(i < THUMB_LIMIT && name.endsWith('.pdf')){
+      const canvas = document.createElement('canvas'); canvas.style.maxWidth='100%'; canvas.style.maxHeight='90px'; previewEl.appendChild(canvas);
+      (async ()=>{
+        try{
+          const ab = await f.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({data:ab}).promise;
+          const page = await pdf.getPage(1);
+          const viewport = page.getViewport({ scale: 0.8 });
+          const ratio = Math.min(150/viewport.width, 90/viewport.height, 1);
+          const scaled = page.getViewport({ scale: ratio });
+          canvas.width = scaled.width; canvas.height = scaled.height;
+          const ctx = canvas.getContext('2d');
+          await page.render({ canvasContext: ctx, viewport: scaled }).promise;
+        }catch(e){ previewEl.innerHTML = '<div class="muted">Preview error</div>'; }
+      })();
+    } else {
+      const ext = (f.name.split('.').pop() || '').toUpperCase();
+      const icon = document.createElement('div'); icon.innerHTML = `<div style="font-weight:700;font-size:18px">${escapeHtml(ext)}</div>`; previewEl.appendChild(icon);
+    }
+
+    const title = document.createElement('div'); title.className='muted'; title.style.marginTop='6px'; title.textContent = `${i+1}. ${f.name}`;
+    const actions = document.createElement('div'); actions.className='preview-actions';
+    const openBtn = document.createElement('button'); openBtn.textContent='Open'; openBtn.addEventListener('click', ()=> openFileInNewTab(f));
+    const editBtn = document.createElement('button'); editBtn.className='secondary'; editBtn.textContent='Edit'; editBtn.addEventListener('click', ()=> openImageEditor(i));
+    const delBtn = document.createElement('button'); delBtn.className='secondary'; delBtn.textContent='Delete'; delBtn.addEventListener('click', ()=> overlayRemove(i));
+    actions.appendChild(openBtn); actions.appendChild(editBtn); actions.appendChild(delBtn);
+
+    card.appendChild(previewEl); card.appendChild(title); card.appendChild(actions);
+    overlayPreview.appendChild(card);
+  }
+}
+
+function reorderFiles(inputEl, fromIndex, toIndex){
+  const files = Array.from(inputEl.files || []);
+  if(fromIndex < 0 || toIndex < 0 || fromIndex >= files.length || toIndex > files.length) return;
+  const file = files.splice(fromIndex,1)[0];
+  files.splice(toIndex,0,file);
+  const dt = new DataTransfer(); files.forEach(f=> dt.items.add(f)); inputEl.files = dt.files; setListFromInput(activeSection);
+}
+
+function overlayRemove(index){ if(!activeSection) return; const input = byId(activeSection+'Files'); const dt = new DataTransfer(); Array.from(input.files || []).forEach((f,i)=> { if(i!==index) dt.items.add(f); }); input.files = dt.files; setListFromInput(activeSection); renderOverlayPreviewFromInput(); overlayCount.textContent = (input.files.length || 0) + ' files'; }
+function openFileInNewTab(file){ const url = URL.createObjectURL(file); window.open(url,'_blank'); setTimeout(()=> URL.revokeObjectURL(url), 30000); }
+
+/* ---------- conversion helpers (real) ---------- */
+const readAsArrayBuffer = (file) => new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsArrayBuffer(file); });
+
+/* MERGE PDFs */
+async function doMergePDFs(){
+  const input = byId('mergeFiles'); if(!input.files.length) throw new Error('No PDF files selected');
+  const outPdf = await PDFLib.PDFDocument.create();
+  for(const f of Array.from(input.files)){
+    const bytes = await f.arrayBuffer();
+    const src = await PDFLib.PDFDocument.load(bytes);
+    const pages = await outPdf.copyPages(src, src.getPageIndices());
+    pages.forEach(p=> outPdf.addPage(p));
+  }
+  const merged = await outPdf.save();
+  return { blob: new Blob([merged],{type:'application/pdf'}), filename: 'merged.pdf', mime: 'application/pdf' };
+}
+
+/* PDF -> DOCX */
+async function doPdfToDocx(){
+  const inEl = byId('pdf2docxFiles'); if(!inEl || !inEl.files[0]) throw new Error('Pick a PDF file');
+  const fbytes = await readAsArrayBuffer(inEl.files[0]);
+  const pdf = await pdfjsLib.getDocument({data: fbytes}).promise;
+  const paragraphs=[];
+  for(let p=1;p<=pdf.numPages;p++){ const page = await pdf.getPage(p); const content = await page.getTextContent(); const text = content.items.map(i=>i.str||'').join(' '); paragraphs.push(`— Page ${p} —`); paragraphs.push(text.trim()); }
+  const { Document, Paragraph, Packer } = docx;
+  const doc = new Document({ sections:[{ children: paragraphs.map(t=> new Paragraph(t)) }]});
+  const blob = await Packer.toBlob(doc);
+  return { blob, filename: (inEl.files[0].name.replace(/\.pdf$/i,'')||'document') + '.docx', mime:'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
+}
+
+/* DOCX -> PDF */
+async function doDocxToPdf(){
+  const inEl = byId('docx2pdfFiles'); if(!inEl || !inEl.files[0]) throw new Error('Pick a .docx file');
+  const ab = await readAsArrayBuffer(inEl.files[0]);
+  const result = await mammoth.convertToHtml({ arrayBuffer: ab });
+  const tmp = document.createElement('div'); tmp.innerHTML = result.value;
+  const textBlocks = Array.from(tmp.querySelectorAll('p, h1, h2, h3, h4, h5, h6')).map(el=> ({ text: el.textContent, margin:[0,4,0,4] }));
+  const docDef = { content: textBlocks, defaultStyle:{ fontSize:11 } };
+  return new Promise((res,rej)=> pdfMake.createPdf(docDef).getBlob(blob => res({ blob, filename: (inEl.files[0].name.replace(/\.docx$/i,'')||'document') + '.pdf', mime:'application/pdf' })));
+}
+
+/* XLSX -> PDF */
+async function doXlsxToPdf(){
+  const inEl = byId('xls2pdfFiles'); if(!inEl || !inEl.files[0]) throw new Error('Pick an .xlsx file');
+  const ab = await readAsArrayBuffer(inEl.files[0]); const wb = XLSX.read(ab, { type:'array' });
+  const wsName = wb.SheetNames[0]; const ws = wb.Sheets[wsName];
+  const data = XLSX.utils.sheet_to_json(ws, { header:1, blankrows:false });
+  const tableBody = data.map(r=> r.map(cell => ({ text: (cell==null?'':String(cell)), margin:[2,2,2,2] })));
+  const docDef = { content:[{ text: wsName, style:'header', margin:[0,0,0,8] }, { table:{ body: tableBody, headerRows:1 } }], styles:{ header:{ fontSize:14, bold:true } } };
+  return new Promise((res,rej)=> pdfMake.createPdf(docDef).getBlob(blob => res({ blob, filename: (inEl.files[0].name.replace(/\.xlsx$/i,'')||'sheet') + '.pdf', mime:'application/pdf' })));
+}
+
+/* PDF -> XLSX */
+async function doPdfToXlsx(){
+  const inEl = byId('pdf2xlsFiles'); if(!inEl || !inEl.files[0]) throw new Error('Pick a PDF file');
+  const ab = await readAsArrayBuffer(inEl.files[0]); const pdf = await pdfjsLib.getDocument({data:ab}).promise;
+  const rows=[]; for(let p=1;p<=pdf.numPages;p++){ const page = await pdf.getPage(p); const content = await page.getTextContent(); const line = content.items.map(i=>i.str).join(' '); rows.push([`Page ${p}`, line]); }
+  const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet([['Page','Content'], ...rows]); XLSX.utils.book_append_sheet(wb, ws, 'Extracted');
+  const out = XLSX.write(wb, { type:'array', bookType:'xlsx' });
+  return { blob: new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), filename: (inEl.files[0].name.replace(/\.pdf$/i,'')||'pdf') + '.xlsx', mime:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+}
+
+/* DOCX -> XLSX */
+async function doDocxToXlsx(){
+  const inEl = byId('docx2xlsFiles'); if(!inEl || !inEl.files[0]) throw new Error('Pick a .docx file');
+  const ab = await readAsArrayBuffer(inEl.files[0]); const result = await mammoth.extractRawText({ arrayBuffer: ab });
+  const lines = result.value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  const data = [['Paragraph']].concat(lines.map(s=>[s]));
+  const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet(data); XLSX.utils.book_append_sheet(wb, ws, 'Paragraphs');
+  const out = XLSX.write(wb, { type:'array', bookType:'xlsx' });
+  return { blob: new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), filename: (inEl.files[0].name.replace(/\.docx$/i,'')||'doc') + '.xlsx', mime:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+}
+
+/* XLSX -> DOCX */
+async function doXlsxToDocx(){
+  const inEl = byId('xls2docxFiles'); if(!inEl || !inEl.files[0]) throw new Error('Pick an .xlsx file');
+  const ab = await readAsArrayBuffer(inEl.files[0]); const wb = XLSX.read(ab, { type:'array' });
+  const wsName = wb.SheetNames[0]; const ws = wb.Sheets[wsName]; const data = XLSX.utils.sheet_to_json(ws, { header:1, blankrows:false });
+  const { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType } = docx;
+  const rows = (data.length ? data : [['Empty']]).map(r => new TableRow({ children: (r.length ? r : ['']).map(cell => new TableCell({ children:[ new Paragraph(String(cell)) ], width:{ size: 100/(data[0]?.length||1), type: WidthType.PERCENTAGE } })) }));
+  const table = new Table({ rows, width: { size: 100, type: WidthType.PERCENTAGE } });
+  const documentObj = new Document({ sections:[{ children:[ new Paragraph({ text: wsName, alignment: AlignmentType.CENTER }), table ] }]});
+  const blob = await Packer.toBlob(documentObj);
+  return { blob, filename: (inEl.files[0].name.replace(/\.xlsx$/i,'')||'sheet') + '.docx', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
+}
+
+/* ---------- IMAGES -> MERGE (TOGETHER OR INDIVIDUAL) ---------- */
+async function doImageMergeToPdf(){
+  const inEl = byId('imgmergeFiles');
+  if(!inEl || !inEl.files.length) throw new Error('No images selected');
+  const files = Array.from(inEl.files);
+  const mm2pt = mm => mm * 2.8346456693;
+  let wmm,hmm;
+  const ps = paperSizeEl.value;
+  if(ps === 'A4'){ wmm = 210; hmm = 297; }
+  else if(ps === 'A3'){ wmm = 297; hmm = 420; }
+  else if(ps === 'Letter'){ wmm = 216; hmm = 279; }
+  else { wmm = Number(customW.value) || 210; hmm = Number(customH.value) || 297; }
+  const orient = document.querySelector('input[name="orient"]:checked').value;
+  let pageW = mm2pt(orient === 'portrait' ? wmm : hmm);
+  let pageH = mm2pt(orient === 'portrait' ? hmm : wmm);
+  const mode = document.querySelector('input[name="imgMode"]:checked').value; // individual or together
+  const globalBrightness = Number(brightnessEl.value)/100;
+  const globalContrast = Number(contrastEl.value)/100;
+
+  const pdfDoc = await PDFLib.PDFDocument.create();
+
+  // helper: draw image to canvas and apply filters, crop and resize if user edited
+  async function processImageToArrayBuffer(file){
+    const key = file.name + '__' + file.lastModified;
+    const edit = imageEdits.get(key);
+    const imgBitmap = await createImageBitmap(file);
+    // determine source crop
+    let sx = 0, sy = 0, sw = imgBitmap.width, sh = imgBitmap.height;
+    if(edit && edit.crop){ sx = Math.max(0, Math.floor(edit.crop.x)); sy = Math.max(0, Math.floor(edit.crop.y)); sw = Math.max(1, Math.floor(edit.crop.w)); sh = Math.max(1, Math.floor(edit.crop.h)); }
+    // determine dest size from resize or from crop
+    let dw = sw, dh = sh;
+    if(edit && edit.resize && edit.resize.w && edit.resize.h){ dw = Math.max(1, Math.floor(edit.resize.w)); dh = Math.max(1, Math.floor(edit.resize.h)); }
+    // if no explicit resize and user set global page size, keep original pixels but may scale later when drawing on PDF page
+    const canvas = document.createElement('canvas'); canvas.width = dw; canvas.height = dh;
+    const ctx = canvas.getContext('2d');
+    // apply filters: use percent form for broader compatibility
+    const b = (edit && edit.brightness!=null) ? edit.brightness : globalBrightness;
+    const c = (edit && edit.contrast!=null) ? edit.contrast : globalContrast;
+    ctx.filter = `brightness(${b*100}%) contrast(${c*100}%)`;
+    // draw cropped region to canvas scaled to desired size
+    ctx.drawImage(imgBitmap, sx, sy, sw, sh, 0, 0, dw, dh);
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+    return await blob.arrayBuffer();
+  }
+
+  if(mode === 'individual'){
+    for(const f of files){
+      try{
+        const arr = await processImageToArrayBuffer(f);
+        const embedded = await pdfDoc.embedPng(arr);
+        const page = pdfDoc.addPage([pageW, pageH]);
+        const imgDims = embedded.scale(1);
+        const margin = mm2pt(10);
+        const maxW = pageW - margin*2;
+        const maxH = pageH - margin*2;
+        const scale = Math.min(maxW / imgDims.width, maxH / imgDims.height, 1);
+        const drawW = imgDims.width * scale;
+        const drawH = imgDims.height * scale;
+        const x = (pageW - drawW)/2;
+        const y = (pageH - drawH)/2;
+        page.drawImage(embedded, { x, y, width: drawW, height: drawH });
+      } catch(e){ console.error('img error', e); }
+    }
+  } else {
+    for(const f of files){
+      try{
+        const arr = await processImageToArrayBuffer(f);
+        const embedded = await pdfDoc.embedPng(arr);
+        const page = pdfDoc.addPage([pageW, pageH]);
+        const imgDims = embedded.scale(1);
+        const margin = mm2pt(10);
+        const maxW = pageW - margin*2;
+        const maxH = pageH - margin*2;
+        const scale = Math.min(maxW / imgDims.width, maxH / imgDims.height, 1);
+        const drawW = imgDims.width * scale;
+        const drawH = imgDims.height * scale;
+        const x = (pageW - drawW)/2;
+        const y = (pageH - drawH)/2;
+        page.drawImage(embedded, { x, y, width: drawW, height: drawH });
+      } catch(e){ console.error('img error', e); }
+    }
+  }
+
+  const out = await pdfDoc.save();
+  return { blob: new Blob([out], { type:'application/pdf' }), filename: 'images-merged.pdf', mime: 'application/pdf' };
+}
+
+/* ---------- mapping of sections to actions ---------- */
+const sectionToAction = {
+  merge: doMergePDFs,
+  pdf2docx: doPdfToDocx,
+  docx2pdf: doDocxToPdf,
+  xls2pdf: doXlsxToPdf,
+  pdf2xls: doPdfToXlsx,
+  docx2xls: doDocxToXlsx,
+  xls2docx: doXlsxToDocx,
+  imgmerge: doImageMergeToPdf
+};
+
+/* ---------- Submit (perform conversion, show Download/Print) ---------- */
+submitBtn.addEventListener('click', async ()=>{
+  if(!activeSection) return alert('No active converter.');
+  submitBtn.disabled=true; submitBtn.textContent='Working...'; postMsg.innerHTML=''; downloadBtn.style.display='none'; printBtn.style.display='none';
+  try{
+    const func = sectionToAction[activeSection];
+    if(!func) throw new Error('No action found.');
+    const result = await func();
+    lastResult = result;
+    postMsg.innerHTML = `<div style="margin-top:8px;color:green">Done: ${escapeHtml(result.filename)}</div>`;
+    downloadBtn.style.display=''; downloadBtn.onclick = ()=> saveBlob(result.blob, result.filename);
+    if(result.mime === 'application/pdf'){ printBtn.style.display=''; printBtn.onclick = ()=> { const url = URL.createObjectURL(result.blob); const w = window.open(url,'_blank'); setTimeout(()=> w.print(),700); setTimeout(()=> URL.revokeObjectURL(url),30000); }; } else { printBtn.style.display='none'; printBtn.onclick = null; }
+  }catch(err){ console.error(err); postMsg.innerHTML = `<div style="margin-top:8px;color:red">Error: ${escapeHtml(err.message || String(err))}</div>`; }
+  finally{ submitBtn.disabled=false; submitBtn.textContent='Submit'; }
+});
+
+/* Hide show button */
+ // Get the button and the body element
+  const toggleBtn = document.getElementById('toggleBgBtn');
+  const body = document.body;
+
+  // Track state
+  let bgVisible = true; // starts with image shown
+
+  toggleBtn.addEventListener('click', () => {
+    if (bgVisible) {
+      // Remove background image, show gradient
+      body.classList.remove('bg-image');
+      bgVisible = false;
+      toggleBtn.textContent = "🌅 Show Background";
+    } else {
+      // Add background image
+      body.classList.add('bg-image');
+      bgVisible = true;
+      toggleBtn.textContent = "🌅 Hide Background";
+    }
+  });
+
+
+/* ---------- image editor implementation (live crop + resize + filters) ---------- */
+const imgEditor = byId('imgEditor');
+const editCanvas = byId('editCanvas'); const editCtx = editCanvas.getContext('2d');
+const cropRectEl = byId('cropRect');
+const resizeW = byId('resizeW'), resizeH = byId('resizeH'), keepAspect = byId('keepAspect');
+const editBrightness = byId('editBrightness'), editContrast = byId('editContrast');
+const closeEditor = byId('closeEditor'), applyCrop = byId('applyCrop'), resetCrop = byId('resetCrop');
+let currentEditIndex = null; let currentImageBitmap = null; let dragStart = null; let currentCrop = null; let naturalAspect = 1;
+
+function openImageEditor(index){
+  const input = byId('imgmergeFiles'); const file = (input.files || [])[index]; if(!file) return alert('File not found');
+  currentEditIndex = index; const key = file.name + '__' + file.lastModified; const edit = imageEdits.get(key) || {};
+  createImageBitmap(file).then(bitmap => {
+    currentImageBitmap = bitmap; naturalAspect = bitmap.width/bitmap.height;
+    // set canvas to a reasonable display size while preserving aspect
+    const maxW = Math.min(800, window.innerWidth - 420); const maxH = Math.min(600, window.innerHeight - 200);
+    let scale = Math.min(maxW/bitmap.width, maxH/bitmap.height, 1);
+    editCanvas.width = Math.floor(bitmap.width * scale);
+    editCanvas.height = Math.floor(bitmap.height * scale);
+    // restore crop if any
+    if(edit.crop){ currentCrop = Object.assign({}, edit.crop); }
+    else { currentCrop = { x:0, y:0, w:bitmap.width, h:bitmap.height }; }
+    // restore resize
+    if(edit.resize){ resizeW.value = edit.resize.w; resizeH.value = edit.resize.h; } else { resizeW.value = bitmap.width; resizeH.value = bitmap.height; }
+    editBrightness.value = Math.round(((edit.brightness!=null?edit.brightness:1)*100));
+    editContrast.value = Math.round(((edit.contrast!=null?edit.contrast:1)*100));
+    drawEditorCanvas();
+    imgEditor.style.display='block';
+  });
+}
+
+function drawEditorCanvas(){
+  if(!currentImageBitmap) return;
+  // because canvas size may be scaled down for display, compute display scale
+  const dispScaleX = editCanvas.width / currentImageBitmap.width;
+  const dispScaleY = editCanvas.height / currentImageBitmap.height;
+  editCtx.clearRect(0,0,editCanvas.width,editCanvas.height);
+  // apply preview filters
+  const b = Number(editBrightness.value)/100; const c = Number(editContrast.value)/100;
+  editCtx.filter = `brightness(${b*100}%) contrast(${c*100}%)`;
+  // draw full image scaled to canvas
+  editCtx.drawImage(currentImageBitmap, 0, 0, currentImageBitmap.width, currentImageBitmap.height, 0, 0, editCanvas.width, editCanvas.height);
+  // draw crop overlay
+  if(currentCrop){
+    const x = Math.max(0, Math.floor(currentCrop.x * dispScaleX));
+    const y = Math.max(0, Math.floor(currentCrop.y * dispScaleY));
+    const w = Math.max(1, Math.floor(currentCrop.w * dispScaleX));
+    const h = Math.max(1, Math.floor(currentCrop.h * dispScaleY));
+    cropRectEl.style.display='block'; cropRectEl.style.left = (editCanvas.getBoundingClientRect().left + x) + 'px';
+    cropRectEl.style.top = (editCanvas.getBoundingClientRect().top + y) + 'px';
+    cropRectEl.style.width = w + 'px'; cropRectEl.style.height = h + 'px';
+    // also draw a translucent dimming overlay on canvas for clarity
+    editCtx.save(); editCtx.fillStyle = 'rgba(0,0,0,0.35)'; editCtx.fillRect(0,0,editCanvas.width,editCanvas.height); editCtx.restore();
+    // redraw the cropped area on top
+    editCtx.save();
+    editCtx.filter = `brightness(${b*100}%) contrast(${c*100}%)`;
+    editCtx.drawImage(currentImageBitmap, currentCrop.x, currentCrop.y, currentCrop.w, currentCrop.h, x, y, w, h);
+    editCtx.restore();
+  } else {
+    cropRectEl.style.display='none';
+  }
+}
+
+// mouse interactions for drawing crop rectangle
+let isDragging = false; let start = null;
+editCanvas.addEventListener('mousedown', (e)=>{
+  const rect = editCanvas.getBoundingClientRect(); const x = e.clientX - rect.left; const y = e.clientY - rect.top; isDragging = true; start = {x,y}; dragStart = start; });
+window.addEventListener('mousemove', (e)=>{
+  if(!isDragging || !start) return; const rect = editCanvas.getBoundingClientRect(); const x = e.clientX - rect.left; const y = e.clientY - rect.top; const sx = Math.max(0, Math.min(start.x, x)); const sy = Math.max(0, Math.min(start.y, y)); const ex = Math.max(start.x, x); const ey = Math.max(start.y, y);
+  // convert display coords back to image natural coords
+  const dispScaleX = editCanvas.width / currentImageBitmap.width; const dispScaleY = editCanvas.height / currentImageBitmap.height;
+  currentCrop = { x: Math.floor(sx/dispScaleX), y: Math.floor(sy/dispScaleY), w: Math.max(1, Math.floor((ex-sx)/dispScaleX)), h: Math.max(1, Math.floor((ey-sy)/dispScaleY)) };
+  drawEditorCanvas();
+});
+window.addEventListener('mouseup', ()=>{ if(isDragging) { isDragging=false; start=null; } });
+
+// keepAspect handling for resize inputs
+resizeW.addEventListener('input', ()=>{ if(keepAspect.checked && currentImageBitmap){ resizeH.value = Math.round(Number(resizeW.value) / naturalAspect); } });
+resizeH.addEventListener('input', ()=>{ if(keepAspect.checked && currentImageBitmap){ resizeW.value = Math.round(Number(resizeH.value) * naturalAspect); } });
+
+editBrightness.addEventListener('input', drawEditorCanvas); editContrast.addEventListener('input', drawEditorCanvas);
+
+closeEditor.addEventListener('click', ()=>{ imgEditor.style.display='none'; cropRectEl.style.display='none'; });
+
+resetCrop.addEventListener('click', ()=>{ if(!currentImageBitmap) return; currentCrop = { x:0, y:0, w:currentImageBitmap.width, h:currentImageBitmap.height }; resizeW.value = currentImageBitmap.width; resizeH.value = currentImageBitmap.height; drawEditorCanvas(); });
+
+applyCrop.addEventListener('click', ()=>{
+  const input = byId('imgmergeFiles'); const file = (input.files || [])[currentEditIndex]; if(!file) return;
+  const key = file.name + '__' + file.lastModified;
+  const edit = { crop: Object.assign({}, currentCrop), resize: { w: Number(resizeW.value), h: Number(resizeH.value) }, brightness: Number(editBrightness.value)/100, contrast: Number(editContrast.value)/100 };
+  imageEdits.set(key, edit);
+  imgEditor.style.display='none'; cropRectEl.style.display='none'; renderOverlayPreviewFromInput();
+});
+
+/* ---------- helpers ---------- */
+function saveBlob(blob, filename){ try{ saveAs(blob, filename); }catch(e){ const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); a.remove(); } }
+
+converters.forEach(c=> setListFromInput(c.id));
+</script>
+</body>
+</html>
